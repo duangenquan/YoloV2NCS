@@ -45,7 +45,7 @@ Please update parameters (biases, object names, etc) in ./src/CRegionLayer.cpp, 
 Please read ./src/CRegionLayer.cpp and ./detectionExample/ObjectWrapper.py for details.
 
 
-# Bub Fixes
+# Bug Fixes
 + Fix confident offset issues in nms
 
 # References
