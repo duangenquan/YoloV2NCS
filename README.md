@@ -3,7 +3,7 @@
 *This project shows how to run tiny yolov2 (20 classes) with movidius stick:*
 + A python convertor from yolo to caffe
 + A c/c++ implementation and python wrapper for region layer of yolov2
-+ A sample for running yolov2 with movidius stick
++ A sample for running yolov2 with movidius stick in images or videos
 
 ---
 
@@ -44,6 +44,8 @@ Please update parameters (biases, object names, etc) in ./src/CRegionLayer.cpp, 
 
 Please read ./src/CRegionLayer.cpp and ./detectionExample/ObjectWrapper.py for details.
 
+# Updates
++ Process video in the sample (Thanks ichigoi7e!)
 
 # Bug Fixes
 + Fix confident offset issues in nms
