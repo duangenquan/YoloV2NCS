@@ -20,6 +20,7 @@ if __name__ == '__main__':
     videofile = args.video
 
     detector = ObjectWrapper(network_blob)
+    stickNum = ObjectWrapper.devNum
 
     if sys.argv[1] == '--image':
         # image preprocess
@@ -42,15 +43,23 @@ if __name__ == '__main__':
         cap = cv2.VideoCapture(videofile)
         fps = 0.0
         while cap.isOpened():
-            ret, img = cap.read()
+            start = time.time()
+            imArr = {}
+            results = {}
+            for i in range(stickNum):
+                ret, img = cap.read()
+                if i not in imArr:
+                    imArr[i] = img
             if ret == True:
-                start = time.time()
-                results = detector.Detect(img)
-                imdraw = Visualize(img, results)
-                fpsIm = cv2.putText(imdraw, "%.2ffps" % fps, (70, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
-                cv2.imshow('Demo', fpsIm)
+                tmp = detector.Parallel(imArr)
+                for i in range(stickNum):
+                    if i not in results:
+                        results[i] = tmp[i]
+                    imdraw = Visualize(imArr[i], results[i])
+                    fpsImg = cv2.putText(imdraw, "%.2ffps" % fps, (70, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+                    cv2.imshow('Demo', fpsImg)
                 end = time.time()
                 seconds = end - start
-                fps = 1./seconds
+                fps = stickNum / seconds
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
