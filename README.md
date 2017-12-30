@@ -7,6 +7,11 @@
 
 ---
 
+# Updates
++ Fix confident offset issues in nms 12/12/2017
++ Process video in the sample 12/15/2017 (Thanks ichigoi7e!)
++ Support multiple sticks 12/29/2017 (Thanks ichigoi7e!)
+
 # How To Use
 The following experiments are done on an Intel NUC with ubuntu 16.04.
 	
@@ -43,12 +48,6 @@ The converted caffe models should end with "prototxt" and "caffemodel".
 Please update parameters (biases, object names, etc) in ./src/CRegionLayer.cpp, and parameters (dim, blockwd, targetBlockwd, classe, etc) in ./detectionExample/ObjectWrapper.py.
 
 Please read ./src/CRegionLayer.cpp and ./detectionExample/ObjectWrapper.py for details.
-
-# Updates
-+ Process video in the sample (Thanks ichigoi7e!)
-
-# Bug Fixes
-+ Fix confident offset issues in nms
 
 # References
 + [caffe](https://github.com/BVLC/caffe)
