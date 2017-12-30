@@ -39,10 +39,10 @@ class ObjectWrapper():
             iterations = ObjectWrapper.graphHandle[i].GetGraphOption(mvnc.GraphOption.ITERATIONS)
 
             self.dim = (416,416)
-            self.blockwd = 13
+            self.blockwd = 12
             self.wh = self.blockwd*self.blockwd
-            self.targetBlockwd = 13
-            self.classes = 3
+            self.targetBlockwd = 12
+            self.classes = 20
             self.threshold = 0.2
             self.nms = 0.4
 
