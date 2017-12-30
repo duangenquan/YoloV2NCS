@@ -15,36 +15,42 @@ class BBox(object):
         self.name = bbox.name
 
 class ObjectWrapper():
+    mvnc.SetGlobalOption(mvnc.GlobalOption.LOG_LEVEL, 2)
+    devices = mvnc.EnumerateDevices()
+    devNum = len(devices)
+    if len(devices) == 0:
+        print('No MVNC devices found')
+        quit()
+    devHandle = []
+    graphHandle = []
     def __init__(self, graphfile):
         select = 1
         self.detector = YoloDetector(select)
-        mvnc.SetGlobalOption(mvnc.GlobalOption.LOG_LEVEL, 2)
-        devices = mvnc.EnumerateDevices()
-        if len(devices) == 0:
-            print('No MVNC devices found')
-            quit()
-        self.device = mvnc.Device(devices[0])
-        self.device.OpenDevice()
-        opt = self.device.GetDeviceOption(mvnc.DeviceOption.OPTIMISATION_LIST)
-        # load blob
-        with open(graphfile, mode='rb') as f:
-            blob = f.read()
-        self.graph = self.device.AllocateGraph(blob)
-        self.graph.SetGraphOption(mvnc.GraphOption.ITERATIONS, 1)
-        iterations = self.graph.GetGraphOption(mvnc.GraphOption.ITERATIONS)
+        
+        for i in range(ObjectWrapper.devNum):
+            ObjectWrapper.devHandle.append(mvnc.Device(ObjectWrapper.devices[i]))
+            ObjectWrapper.devHandle[i].OpenDevice()
+            opt = ObjectWrapper.devHandle[i].GetDeviceOption(mvnc.DeviceOption.OPTIMISATION_LIST)
+            # load blob
+            with open(graphfile, mode='rb') as f:
+                blob = f.read()
+            ObjectWrapper.graphHandle.append(ObjectWrapper.devHandle[i].AllocateGraph(blob))
+            ObjectWrapper.graphHandle[i].SetGraphOption(mvnc.GraphOption.ITERATIONS, 1)
+            iterations = ObjectWrapper.graphHandle[i].GetGraphOption(mvnc.GraphOption.ITERATIONS)
 
-        self.dim = (416,416)
-        self.blockwd = 12
-        self.wh = self.blockwd*self.blockwd
-        self.targetBlockwd = 12
-        self.classes = 20
-        self.threshold = 0.2
-        self.nms = 0.4
+            self.dim = (416,416)
+            self.blockwd = 13
+            self.wh = self.blockwd*self.blockwd
+            self.targetBlockwd = 13
+            self.classes = 3
+            self.threshold = 0.2
+            self.nms = 0.4
 
 
     def __del__(self):
-        self.graph.DeallocateGraph()
-        self.device.CloseDevice()
+        for i in range(ObjectWrapper.devNum):
+            ObjectWrapper.graphHandle[i].DeallocateGraph()
+            ObjectWrapper.devHandle[i].CloseDevice()
     def PrepareImage(self, img, dim):
         imgw = img.shape[1]
         imgh = img.shape[0]
@@ -75,45 +81,26 @@ class ObjectWrapper():
         imgh = img.shape[0]
 
         im,offx,offy = self.PrepareImage(img, self.dim)
-        self.graph.LoadTensor(im.astype(np.float16), 'user object')
-        out, userobj = self.graph.GetResult()
+        ObjectWrapper.graphHandle[0].LoadTensor(im.astype(np.float16), 'user object')
+        out, userobj = ObjectWrapper.graphHandle[0].GetResult()
         out = self.Reshape(out, self.dim)
 
         internalresults = self.detector.Detect(out.astype(np.float32), int(out.shape[0]/self.wh), self.blockwd, self.blockwd, self.classes, imgw, imgh, self.threshold, self.nms, self.targetBlockwd)
         pyresults = [BBox(x) for x in internalresults]
         return pyresults
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def Parallel(self, img):
+        pyresults = {}
+        for i in range(ObjectWrapper.devNum):
+            im,offx,offy = self.PrepareImage(img[i], self.dim)
+            ObjectWrapper.graphHandle[i].LoadTensor(im.astype(np.float16), 'user object')
+        for i in range(ObjectWrapper.devNum):
+            out, userobj = ObjectWrapper.graphHandle[i].GetResult()
+            out = self.Reshape(out, self.dim)
+            imgw = img[i].shape[1]
+            imgh = img[i].shape[0]
+            internalresults = self.detector.Detect(out.astype(np.float32), int(out.shape[0]/self.wh), self.blockwd, self.blockwd, self.classes, imgw, imgh, self.threshold, self.nms, self.targetBlockwd)
+            res = [BBox(x) for x in internalresults]
+            if i not in pyresults:
+                pyresults[i] = res
+        return pyresults
