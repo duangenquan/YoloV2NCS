@@ -5,11 +5,11 @@ from mvnc import mvncapi as mvnc
 from skimage.transform import resize
 
 class BBox(object):
-    def __init__(self, bbox):
-        self.left = bbox.left
-        self.top = bbox.top
-        self.right = bbox.right
-        self.bottom = bbox.bottom
+    def __init__(self, bbox, xscale, yscale, offx, offy):
+        self.left = int(bbox.left / xscale)-offx
+        self.top = int(bbox.top / yscale)-offy
+        self.right = int(bbox.right / xscale)-offx
+        self.bottom = int(bbox.bottom / yscale)-offy
         self.confidence = bbox.confidence
         self.objType = bbox.objType
         self.name = bbox.name
@@ -41,7 +41,7 @@ class ObjectWrapper():
             self.dim = (416,416)
             self.blockwd = 12
             self.wh = self.blockwd*self.blockwd
-            self.targetBlockwd = 12
+            self.targetBlockwd = 13
             self.classes = 20
             self.threshold = 0.2
             self.nms = 0.4
@@ -68,7 +68,7 @@ class ObjectWrapper():
 
         imgb[offy:offy+newh,offx:offx+neww,:] = resize(img.copy()/255.0,(newh,neww),1)
         im = imgb[:,:,(2,1,0)]
-        return im,offx,offy
+        return im,offx,offy,(imgw-offx*2+.0)/imgw,(imgh-offy*2+.0)/imgh
 
     def Reshape(self, out, dim):
         shape = out.shape
@@ -80,13 +80,14 @@ class ObjectWrapper():
         imgw = img.shape[1]
         imgh = img.shape[0]
 
-        im,offx,offy = self.PrepareImage(img, self.dim)
+        im,offx,offy,xscale,yscale = self.PrepareImage(img, self.dim)
+        #print('xscale = {}, yscale = {}'.format(xscale, yscale))
         ObjectWrapper.graphHandle[0].LoadTensor(im.astype(np.float16), 'user object')
         out, userobj = ObjectWrapper.graphHandle[0].GetResult()
         out = self.Reshape(out, self.dim)
 
         internalresults = self.detector.Detect(out.astype(np.float32), int(out.shape[0]/self.wh), self.blockwd, self.blockwd, self.classes, imgw, imgh, self.threshold, self.nms, self.targetBlockwd)
-        pyresults = [BBox(x) for x in internalresults]
+        pyresults = [BBox(x,xscale,yscale, offx, offy) for x in internalresults]
         return pyresults
 
     def Parallel(self, img):
