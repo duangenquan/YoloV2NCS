@@ -8,9 +8,10 @@
 ---
 
 # Updates
-+ Fix confident offset issues in nms 12/12/2017
-+ Process video in the sample 12/15/2017 (Thanks ichigoi7e!)
-+ Support multiple sticks 12/29/2017 (Thanks ichigoi7e!)
++ Refine output bboxes according to letterbox_image in YOLOV2, 01/03/2018
++ Support multiple sticks, 12/29/2017 (Thanks ichigoi7e!)
++ Process video in the sample, 12/15/2017 (Thanks ichigoi7e!)
++ Fix confident offset issues in nms, 12/12/2017
 
 # How To Use
 The following experiments are done on an Intel NUC with ubuntu 16.04.
