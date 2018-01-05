@@ -93,7 +93,7 @@ class ObjectWrapper():
     def Parallel(self, img):
         pyresults = {}
         for i in range(ObjectWrapper.devNum):
-            im,offx,offy = self.PrepareImage(img[i], self.dim)
+            im, offx, offy, w, h = self.PrepareImage(img[i], self.dim)
             ObjectWrapper.graphHandle[i].LoadTensor(im.astype(np.float16), 'user object')
         for i in range(ObjectWrapper.devNum):
             out, userobj = ObjectWrapper.graphHandle[i].GetResult()
@@ -101,7 +101,7 @@ class ObjectWrapper():
             imgw = img[i].shape[1]
             imgh = img[i].shape[0]
             internalresults = self.detector.Detect(out.astype(np.float32), int(out.shape[0]/self.wh), self.blockwd, self.blockwd, self.classes, imgw, imgh, self.threshold, self.nms, self.targetBlockwd)
-            res = [BBox(x) for x in internalresults]
+            res = [BBox(x, w, h, offx, offy) for x in internalresults]
             if i not in pyresults:
                 pyresults[i] = res
         return pyresults
