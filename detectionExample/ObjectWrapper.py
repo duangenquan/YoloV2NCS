@@ -68,7 +68,7 @@ class ObjectWrapper():
 
         imgb[offy:offy+newh,offx:offx+neww,:] = resize(img.copy()/255.0,(newh,neww),1)
         im = imgb[:,:,(2,1,0)]
-        return im,offx,offy,(imgw-offx*2+.0)/imgw,(imgh-offy*2+.0)/imgh
+        return im, int(offx*imgw/neww), int(offy*imgh/newh), neww/dim[0], newh/dim[1]
 
     def Reshape(self, out, dim):
         shape = out.shape
