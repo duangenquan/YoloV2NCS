@@ -8,6 +8,7 @@
 ---
 
 # Updates
++ [Release 1.0](https://github.com/duangenquan/YoloV2NCS/releases/tag/v1.0) for NCSDK v1.0
 + Refine output bboxes according to letterbox_image in YOLOV2, 01/03/2018, 01/12/2018 (Thanks nathiyaa!)
 + Support multiple sticks, 12/29/2017 (Thanks ichigoi7e!)
 + Process video in the sample, 12/15/2017 (Thanks ichigoi7e!)
@@ -15,7 +16,10 @@
 
 # How To Use
 The following experiments are done on an Intel NUC with ubuntu 16.04.
-	
+
+### Preliminaries
+Please install NCSDK following https://github.com/movidius/ncsdk.
+
 ### Step 1. Compile Python Wrapper
 ```make```
 
