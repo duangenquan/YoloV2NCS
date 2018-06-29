@@ -1,4 +1,4 @@
-﻿from libpydetector import YoloDetector
+from libpydetector import YoloDetector
 import os, io, numpy, time
 import numpy as np
 from mvnc import mvncapi as mvnc
@@ -15,42 +15,48 @@ class BBox(object):
         self.name = bbox.name
 
 class ObjectWrapper():
-    mvnc.SetGlobalOption(mvnc.GlobalOption.LOG_LEVEL, 2)
-    devices = mvnc.EnumerateDevices()
+    mvnc.global_set_option(mvnc.GlobalOption.RW_LOG_LEVEL, 2)
+    devices = mvnc.enumerate_devices()
     devNum = len(devices)
     if len(devices) == 0:
         print('No MVNC devices found')
         quit()
     devHandle = []
     graphHandle = []
+    fifoInHandle = []
+    fifoOutHandle = []
+
     def __init__(self, graphfile):
         select = 1
         self.detector = YoloDetector(select)
-        
         for i in range(ObjectWrapper.devNum):
             ObjectWrapper.devHandle.append(mvnc.Device(ObjectWrapper.devices[i]))
-            ObjectWrapper.devHandle[i].OpenDevice()
-            opt = ObjectWrapper.devHandle[i].GetDeviceOption(mvnc.DeviceOption.OPTIMISATION_LIST)
+            ObjectWrapper.devHandle[i].open()
             # load blob
             with open(graphfile, mode='rb') as f:
                 blob = f.read()
-            ObjectWrapper.graphHandle.append(ObjectWrapper.devHandle[i].AllocateGraph(blob))
-            ObjectWrapper.graphHandle[i].SetGraphOption(mvnc.GraphOption.ITERATIONS, 1)
-            iterations = ObjectWrapper.graphHandle[i].GetGraphOption(mvnc.GraphOption.ITERATIONS)
-
-            self.dim = (416,416)
-            self.blockwd = 12
-            self.wh = self.blockwd*self.blockwd
-            self.targetBlockwd = 13
-            self.classes = 20
-            self.threshold = 0.2
-            self.nms = 0.4
-
+            # create graph instance
+            ObjectWrapper.graphHandle.append(mvnc.Graph('inst' + str(i)))
+            # allocate resources
+            fifoIn, fifoOut = ObjectWrapper.graphHandle[i].allocate_with_fifos(ObjectWrapper.devHandle[i], blob)
+            ObjectWrapper.fifoInHandle.append(fifoIn)
+            ObjectWrapper.fifoOutHandle.append(fifoOut)
+ 
+        self.dim = (416,416)
+        self.blockwd = 12
+        self.wh = self.blockwd*self.blockwd
+        self.targetBlockwd = 13
+        self.classes = 20
+        self.threshold = 0.2
+        self.nms = 0.4
 
     def __del__(self):
         for i in range(ObjectWrapper.devNum):
-            ObjectWrapper.graphHandle[i].DeallocateGraph()
-            ObjectWrapper.devHandle[i].CloseDevice()
+            ObjectWrapper.fifoInHandle[i].destroy()
+            ObjectWrapper.fifoOutHandle[i].destroy()
+            ObjectWrapper.graphHandle[i].destroy()
+            ObjectWrapper.devHandle[i].close()
+
     def PrepareImage(self, img, dim):
         imgw = img.shape[1]
         imgh = img.shape[0]
@@ -76,14 +82,26 @@ class ObjectWrapper():
         out = out.reshape(shape)
         return out
 
-    def Detect(self, img):
+    def Detect(self, img, idx=0):
+        """Send image for inference on a single compute stick
+           
+            Args:
+                img: openCV image type
+                idx: index of the compute stick to use for inference
+            Returns:
+                [<BBox>]: array of BBox type objects for each result in the detection
+        """
         imgw = img.shape[1]
         imgh = img.shape[0]
 
         im,offx,offy,xscale,yscale = self.PrepareImage(img, self.dim)
         #print('xscale = {}, yscale = {}'.format(xscale, yscale))
-        ObjectWrapper.graphHandle[0].LoadTensor(im.astype(np.float16), 'user object')
-        out, userobj = ObjectWrapper.graphHandle[0].GetResult()
+
+        ObjectWrapper.graphHandle[idx].queue_inference_with_fifo_elem(
+                ObjectWrapper.fifoInHandle[i],
+                ObjectWrapper.fifoOutHandle[i],
+                im.astype(np.float32), 'user object')
+        out, userobj = ObjectWrapper.fifoOutHandle[idx].read_elem()
         out = self.Reshape(out, self.dim)
 
         internalresults = self.detector.Detect(out.astype(np.float32), int(out.shape[0]/self.wh), self.blockwd, self.blockwd, self.classes, imgw, imgh, self.threshold, self.nms, self.targetBlockwd)
@@ -91,12 +109,23 @@ class ObjectWrapper():
         return pyresults
 
     def Parallel(self, img):
+        """Send array of images for inference on multiple compute sticks
+           
+            Args:
+                img: array of images to run inference on
+           
+            Returns:
+                { <int>:[<BBox] }: A dict with key-value pairs mapped to compute stick device numbers and arrays of the detection boxs (BBox)
+        """
         pyresults = {}
         for i in range(ObjectWrapper.devNum):
             im, offx, offy, w, h = self.PrepareImage(img[i], self.dim)
-            ObjectWrapper.graphHandle[i].LoadTensor(im.astype(np.float16), 'user object')
+            ObjectWrapper.graphHandle[i].queue_inference_with_fifo_elem(
+                    ObjectWrapper.fifoInHandle[i],
+                    ObjectWrapper.fifoOutHandle[i],
+                    im.astype(np.float32), 'user object')
         for i in range(ObjectWrapper.devNum):
-            out, userobj = ObjectWrapper.graphHandle[i].GetResult()
+            out, userobj = ObjectWrapper.fifoOutHandle[i].read_elem()
             out = self.Reshape(out, self.dim)
             imgw = img[i].shape[1]
             imgh = img[i].shape[0]
