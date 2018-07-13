@@ -98,8 +98,8 @@ class ObjectWrapper():
         #print('xscale = {}, yscale = {}'.format(xscale, yscale))
 
         ObjectWrapper.graphHandle[idx].queue_inference_with_fifo_elem(
-                ObjectWrapper.fifoInHandle[i],
-                ObjectWrapper.fifoOutHandle[i],
+                ObjectWrapper.fifoInHandle[idx],
+                ObjectWrapper.fifoOutHandle[idx],
                 im.astype(np.float32), 'user object')
         out, userobj = ObjectWrapper.fifoOutHandle[idx].read_elem()
         out = self.Reshape(out, self.dim)
