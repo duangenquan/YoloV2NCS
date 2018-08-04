@@ -34,7 +34,7 @@ public:
 		bp::list bplist = bp::list();
 		void const *buffer;
 		long buflen;
-		bool isReadBuffer = !PyObject_AsReadBuffer(obj.ptr(), &buffer, &buflen);
+		bool isReadBuffer = !PyObject_AsReadBuffer(obj.ptr(), &buffer, (Py_ssize_t*) &buflen);
 		if(!isReadBuffer)
 		{
 			printf("Cannot read data!\n");
