@@ -64,7 +64,7 @@ Please read ./src/CRegionLayer.cpp and ./detectionExample/ObjectWrapper.py for d
 + [yoloNCS](https://github.com/gudovskiy/yoloNCS)
 
 # Contributors
-+ [ichigoi7e](https://github.com/ichigoi7e)
++ [ICHIGOI7E](https://github.com/ICHIGOI7E)
 + [nathiyaa](https://github.com/nathiyaa)
 + [cpagravel](https://github.com/cpagravel)
 
